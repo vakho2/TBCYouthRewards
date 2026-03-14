@@ -46,15 +46,12 @@ final class GameProgressManager: ObservableObject {
 
     @MainActor
     func loadProfile(username: String) async {
-        print("🚀 Loading profile for:", username)
 
         isLoadingProfile = true
         profileErrorMessage = nil
 
         do {
             let profile = try await userService.loadProfile(username: username)
-
-            print("✅ Profile loaded:", profile)
 
             userId = profile.id
             self.username = profile.username
@@ -66,7 +63,6 @@ final class GameProgressManager: ObservableObject {
             hasCheckedInToday = profile.hasCheckedInToday
             nextLevelXPValue = profile.nextLevelXP
         } catch {
-            print("❌ Profile error:", error)
             profileErrorMessage = error.localizedDescription
         }
 
@@ -92,7 +88,6 @@ final class GameProgressManager: ObservableObject {
                 streak: response.streakDay
             )
         } catch {
-            print("❌ Check-in error:", error)
             profileErrorMessage = error.localizedDescription
             return nil
         }
@@ -108,7 +103,6 @@ final class GameProgressManager: ObservableObject {
             await loadProfile(username: username)
             return response
         } catch {
-            print("❌ Payment simulate error:", error)
             profileErrorMessage = error.localizedDescription
             return nil
         }
@@ -119,9 +113,7 @@ final class GameProgressManager: ObservableObject {
         do {
             let result = try await taskService.loadTasks()
             tasks = result
-            print("✅ Tasks loaded:", result)
         } catch {
-            print("❌ Tasks error:", error)
             profileErrorMessage = error.localizedDescription
         }
     }
@@ -136,7 +128,6 @@ final class GameProgressManager: ObservableObject {
             await loadProfile(username: username)
             return response
         } catch {
-            print("❌ Complete task error:", error)
             profileErrorMessage = error.localizedDescription
             return nil
         }

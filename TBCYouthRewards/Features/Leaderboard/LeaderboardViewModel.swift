@@ -28,7 +28,6 @@ final class LeaderboardViewModel: ObservableObject {
             users = try await weekly
             stats = try await statsResult
         } catch {
-            print("❌ Leaderboard error:", error)
             errorMessage = error.localizedDescription
         }
 

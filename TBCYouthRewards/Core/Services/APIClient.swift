@@ -25,8 +25,6 @@ final class APIClient {
             throw URLError(.badURL)
         }
 
-        print("➡️ Request:", url)
-
         var request = URLRequest(url: url)
         request.httpMethod = method
         request.httpBody = body
@@ -36,8 +34,6 @@ final class APIClient {
         let (data, response) = try await URLSession.shared.data(for: request)
 
         if let http = response as? HTTPURLResponse {
-            print("⬅️ Status Code:", http.statusCode)
-            print("⬅️ Raw Response:", String(data: data, encoding: .utf8) ?? "nil")
 
             guard 200..<300 ~= http.statusCode else {
                 if let apiError = try? JSONDecoder().decode(APIErrorResponse.self, from: data) {

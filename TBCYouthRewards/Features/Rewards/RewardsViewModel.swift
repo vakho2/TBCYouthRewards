@@ -26,7 +26,6 @@ final class RewardsViewModel: ObservableObject {
         do {
             rewards = try await rewardService.loadRewards(userId: userId)
         } catch {
-            print("❌ Rewards error:", error)
             errorMessage = error.localizedDescription
         }
 
@@ -52,7 +51,6 @@ final class RewardsViewModel: ObservableObject {
                 errorMessage = "Reward redeem failed."
             }
         } catch {
-            print("❌ Reward redeem error:", error)
             errorMessage = error.localizedDescription
         }
     }
