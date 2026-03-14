@@ -16,12 +16,3 @@ struct Reward: Codable, Identifiable {
     let isRedeemed: Bool
     let rewardType: String
 }
-
-struct RewardModel: Codable, Identifiable {
-    let id: Int
-    let title: String
-    let cost: Int
-    let levelRequired: Int
-    let isRepeatable: Bool
-    let isRedeemed: Bool
-}

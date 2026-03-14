@@ -15,14 +15,10 @@ final class HomeViewModel: ObservableObject {
         HomeLeaderboardUser(name: "Luka M.", xp: "980 XP")
     ]
 
-    @Published var featuredRewards: [HomeRewardItem] = [
-        HomeRewardItem(title: "Starbucks Voucher", subtitle: "Get 10 GEL off", points: "500 pts"),
-        HomeRewardItem(title: "Cavea Ticket", subtitle: "Any movie screening", points: "800 pts")
-    ]
-
-    @Published var recentActivities: [HomeActivityItem] = [
-        HomeActivityItem(title: "Daily Check-in", subtitle: "Today, 09:12 AM", value: "+10 XP"),
-        HomeActivityItem(title: "Snack Spend Bonus", subtitle: "Yesterday, 04:30 PM", value: "+25 pts")
+    @Published var topRewards: [HomeRewardItem] = [
+        HomeRewardItem(title: "Cinema Ticket", subtitle: "", points: "400 pts"),
+        HomeRewardItem(title: "PlayStation 5", subtitle: "", points: "5,000 pts"),
+        HomeRewardItem(title: "Roblox Gift Card", subtitle: "", points: "500 pts")
     ]
 
     @Published var quickActions: [HomeQuickAction] = [
@@ -31,15 +27,4 @@ final class HomeViewModel: ObservableObject {
         HomeQuickAction(title: "Metro Tap", icon: "tram.fill"),
         HomeQuickAction(title: "Snack", icon: "takeoutbag.and.cup.and.straw.fill")
     ]
-
-    func addRecentActivity(title: String, value: String) {
-        recentActivities.insert(
-            HomeActivityItem(
-                title: title,
-                subtitle: "Today",
-                value: value
-            ),
-            at: 0
-        )
-    }
 }

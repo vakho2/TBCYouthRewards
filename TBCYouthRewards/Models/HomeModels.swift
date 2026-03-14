@@ -20,13 +20,6 @@ struct HomeRewardItem: Identifiable {
     let points: String
 }
 
-struct HomeActivityItem: Identifiable {
-    let id = UUID()
-    let title: String
-    let subtitle: String
-    let value: String
-}
-
 struct HomeStreakDay: Identifiable {
     let id = UUID()
     let title: String

@@ -19,7 +19,6 @@ struct HomeView: View {
     var body: some View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 16) {
-
                 RoundedRectangle(cornerRadius: 24)
                     .fill(Color.blue.opacity(0.12))
                     .frame(height: 110)
@@ -195,13 +194,13 @@ struct HomeView: View {
 
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
-                        Text("Featured Rewards")
+                        Text("Top Rewards")
                             .font(.title3)
                             .fontWeight(.bold)
 
                         Spacer()
 
-                        Button("Shop More") {
+                        Button("Explore") {
                             selectedTab = .rewards
                         }
                         .font(.subheadline)
@@ -209,23 +208,20 @@ struct HomeView: View {
                         .foregroundColor(.blue)
                     }
 
-                    HStack(spacing: 12) {
-                        ForEach(viewModel.featuredRewards) { reward in
-                            rewardCard(title: reward.title, subtitle: reward.subtitle, points: reward.points)
+                    VStack(spacing: 12) {
+                        ForEach(viewModel.topRewards) { reward in
+                            topRewardRow(title: reward.title, points: reward.points)
                         }
                     }
+                    .padding(16)
+                    .background(Color.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 24))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 24)
+                            .stroke(Color.black.opacity(0.05), lineWidth: 1)
+                    )
                 }
-
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Recent Activity")
-                        .font(.title3)
-                        .fontWeight(.bold)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-
-                    ForEach(viewModel.recentActivities) { activity in
-                        activityRow(title: activity.title, subtitle: activity.subtitle, value: activity.value)
-                    }
-                }
+                .padding(.top, 4)
             }
             .padding(.horizontal, 16)
             .padding(.top, 16)
@@ -346,7 +342,7 @@ struct HomeView: View {
                 .foregroundColor(.gray)
         }
     }
-    
+
     private func iconForStreakDay(_ day: Int) -> String {
         if day == 5 {
             return "gift"
@@ -372,10 +368,6 @@ struct HomeView: View {
             } else if title == "Metro Tap" {
                 Task {
                     if let response = await gameProgressManager.completeTask(taskId: 1) {
-                        viewModel.addRecentActivity(
-                            title: "Metro Tap",
-                            value: "+\(response.pointsEarned) XP"
-                        )
                         activeActionTitle = "Metro Tap"
                         activeActionXP = response.pointsEarned
                     } else {
@@ -386,10 +378,6 @@ struct HomeView: View {
             } else if title == "Snack" {
                 Task {
                     if let response = await gameProgressManager.completeTask(taskId: 2) {
-                        viewModel.addRecentActivity(
-                            title: "Snack Spend Bonus",
-                            value: "+\(response.pointsEarned) XP"
-                        )
                         activeActionTitle = "Snack Spend Bonus"
                         activeActionXP = response.pointsEarned
                     } else {
@@ -441,76 +429,36 @@ struct HomeView: View {
             .shadow(color: .black.opacity(0.03), radius: 10, x: 0, y: 4)
     }
 
-    private func rewardCard(title: String, subtitle: String, points: String) -> some View {
-        RoundedRectangle(cornerRadius: 20)
-            .fill(Color.white)
-            .frame(height: 180)
-            .overlay(
-                VStack(alignment: .leading, spacing: 10) {
-                    ZStack(alignment: .topTrailing) {
-                        RoundedRectangle(cornerRadius: 16)
-                            .fill(Color.blue.opacity(0.1))
-                            .frame(height: 84)
-
-                        Text(points)
-                            .font(.caption2)
-                            .fontWeight(.bold)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 5)
-                            .background(Color.white)
-                            .clipShape(Capsule())
-                            .padding(8)
-                    }
-
-                    Text(title)
-                        .font(.subheadline)
-                        .fontWeight(.bold)
-
-                    Text(subtitle)
-                        .font(.caption)
-                        .foregroundColor(.gray)
-
-                    Spacer()
-                }
-                .padding(10)
-            )
-            .shadow(color: .black.opacity(0.03), radius: 10, x: 0, y: 4)
-    }
-
-    private func activityRow(title: String, subtitle: String, value: String) -> some View {
+    private func topRewardRow(title: String, points: String) -> some View {
         RoundedRectangle(cornerRadius: 18)
-            .fill(Color.white)
-            .frame(height: 76)
+            .fill(Color(.systemGray6))
+            .frame(height: 88)
             .overlay(
-                HStack(spacing: 12) {
-                    Circle()
-                        .fill(Color.green.opacity(0.12))
-                        .frame(width: 40, height: 40)
+                HStack(spacing: 14) {
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(Color.blue.opacity(0.10))
+                        .frame(width: 56, height: 56)
                         .overlay(
-                            Image(systemName: "bolt.fill")
-                                .foregroundColor(.green)
+                            Image(systemName: "star")
+                                .font(.title3)
+                                .foregroundColor(.blue)
                         )
 
                     VStack(alignment: .leading, spacing: 4) {
                         Text(title)
-                            .font(.subheadline)
+                            .font(.title3)
                             .fontWeight(.bold)
+                            .lineLimit(1)
 
-                        Text(subtitle)
-                            .font(.caption)
-                            .foregroundColor(.gray)
+                        Text(points.uppercased())
+                            .font(.headline)
+                            .foregroundColor(.secondary)
                     }
 
                     Spacer()
-
-                    Text(value)
-                        .font(.subheadline)
-                        .fontWeight(.bold)
-                        .foregroundColor(.green)
                 }
                 .padding(.horizontal, 14)
             )
-            .shadow(color: .black.opacity(0.03), radius: 10, x: 0, y: 4)
     }
 }
 

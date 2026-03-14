@@ -12,6 +12,7 @@ final class LeaderboardViewModel: ObservableObject {
     private let leaderboardService = LeaderboardService()
 
     @Published var users: [LeaderboardUser] = []
+    @Published var stats: LeaderboardStats?
     @Published var isLoading: Bool = false
     @Published var errorMessage: String?
 
@@ -21,8 +22,11 @@ final class LeaderboardViewModel: ObservableObject {
         errorMessage = nil
 
         do {
-            let result = try await leaderboardService.loadWeeklyLeaderboard()
-            users = result
+            async let weekly = leaderboardService.loadWeeklyLeaderboard()
+            async let statsResult = leaderboardService.loadLeaderboardStats()
+
+            users = try await weekly
+            stats = try await statsResult
         } catch {
             print("❌ Leaderboard error:", error)
             errorMessage = error.localizedDescription
@@ -36,12 +40,21 @@ final class LeaderboardViewModel: ObservableObject {
     }
 
     var topThree: [LeaderboardUser] {
-        Array(users.prefix(3))
+        users.filter { $0.rank <= 3 }.sorted { $0.rank < $1.rank }
+    }
+
+    var remainingUsers: [LeaderboardUser] {
+        users.filter { $0.rank > 3 }
     }
 
     func remainingToNextRank(username: String) -> Int {
         guard let currentUser = currentUser(username: username) else { return 0 }
         guard let aboveUser = users.first(where: { $0.rank == currentUser.rank - 1 }) else { return 0 }
         return max(aboveUser.weeklyPoints - currentUser.weeklyPoints + 1, 0)
+    }
+
+    var averageLevelText: String {
+        guard let stats else { return "-" }
+        return String(format: "%.1f", stats.averageLevel)
     }
 }

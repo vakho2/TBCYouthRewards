@@ -10,6 +10,7 @@ import SwiftUI
 struct CardOrderPreviewView: View {
     @ObservedObject var viewModel: CardDesignerViewModel
     @Environment(\.dismiss) var dismiss
+    @EnvironmentObject var gameProgressManager: GameProgressManager
     @State private var isOrderPlaced = false
 
     var body: some View {
@@ -49,56 +50,77 @@ struct CardOrderPreviewView: View {
                 RoundedRectangle(cornerRadius: 28)
                     .fill(
                         LinearGradient(
-                            colors: viewModel.selectedTheme.colors,
+                            colors: [
+                                Color(red: 0.13, green: 0.22, blue: 0.49),
+                                Color(red: 0.21, green: 0.42, blue: 0.86)
+                            ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
                     )
                     .frame(height: 220)
                     .overlay(
-                        ZStack {
-                            if let image = viewModel.selectedImage {
-                                Image(uiImage: image)
-                                    .resizable()
-                                    .scaledToFill()
-                                    .frame(width: 320, height: 220)
-                                    .scaleEffect(viewModel.scale)
-                                    .rotationEffect(.degrees(viewModel.rotation))
-                                    .offset(viewModel.offset)
-                                    .clipShape(RoundedRectangle(cornerRadius: 28))
-                            }
+                        GeometryReader { proxy in
+                            let size = proxy.size
 
-                            VStack(alignment: .leading, spacing: 20) {
-                                HStack {
-                                    Text("TBC YOUTH")
-                                        .foregroundColor(.white)
-                                        .font(.title3)
-                                        .fontWeight(.bold)
+                            ZStack {
+                                if let image = viewModel.selectedImage {
+                                    Image(uiImage: image)
+                                        .resizable()
+                                        .scaledToFill()
+                                        .frame(width: size.width, height: size.height)
+                                        .offset(viewModel.offset)
+                                        .clipped()
+                                }
+
+                                RoundedRectangle(cornerRadius: 28)
+                                    .stroke(Color.white.opacity(0.12), lineWidth: 1)
+
+                                VStack(alignment: .leading, spacing: 20) {
+                                    HStack {
+                                        HStack(spacing: 12) {
+                                            Circle()
+                                                .fill(Color.white.opacity(0.18))
+                                                .frame(width: 32, height: 32)
+
+                                            Text("TBC YOUTH")
+                                                .foregroundColor(.white)
+                                                .font(.title3)
+                                                .fontWeight(.bold)
+                                        }
+
+                                        Spacer()
+
+                                        RoundedRectangle(cornerRadius: 10)
+                                            .fill(Color.yellow)
+                                            .frame(width: 54, height: 40)
+                                    }
 
                                     Spacer()
-                                }
 
-                                Spacer()
+                                    HStack(spacing: 14) {
+                                        ForEach(0..<4, id: \.self) { _ in
+                                            Text("••••")
+                                                .foregroundColor(.white)
+                                                .font(.title3)
+                                        }
+                                    }
 
-                                HStack(spacing: 14) {
-                                    ForEach(0..<4) { _ in
-                                        Text("••••")
+                                    VStack(alignment: .leading, spacing: 6) {
+                                        Text("CARD HOLDER")
+                                            .foregroundColor(.white.opacity(0.8))
+                                            .font(.caption)
+
+                                        Text(gameProgressManager.username.uppercased())
                                             .foregroundColor(.white)
                                             .font(.title3)
+                                            .lineLimit(1)
+                                            .minimumScaleFactor(0.75)
                                     }
                                 }
-
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Text("CARD HOLDER")
-                                        .foregroundColor(.white.opacity(0.8))
-                                        .font(.caption)
-
-                                    Text("ALEX JOHNSON")
-                                        .foregroundColor(.white)
-                                        .font(.title3)
-                                }
+                                .padding(24)
                             }
-                            .padding(24)
+                            .clipShape(RoundedRectangle(cornerRadius: 28))
                         }
                     )
 
@@ -110,9 +132,9 @@ struct CardOrderPreviewView: View {
                     }
 
                     HStack {
-                        Text("Design Theme")
+                        Text("Uploaded Photo")
                         Spacer()
-                        Text("Custom")
+                        Text(viewModel.selectedImage == nil ? "No" : "Yes")
                     }
 
                     HStack {

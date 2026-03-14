@@ -11,4 +11,8 @@ final class LeaderboardService {
     func loadWeeklyLeaderboard() async throws -> [LeaderboardUser] {
         try await APIClient.shared.request("/Leaderboard/weekly")
     }
+
+    func loadLeaderboardStats() async throws -> LeaderboardStats {
+        try await APIClient.shared.request("/Leaderboard/stats")
+    }
 }

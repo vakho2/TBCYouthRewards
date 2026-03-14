@@ -8,7 +8,6 @@
 import SwiftUI
 
 struct MainTabView: View {
-    @StateObject private var viewModel = MainTabViewModel()
     @State private var selectedTab: AppTab = .home
 
     var body: some View {
