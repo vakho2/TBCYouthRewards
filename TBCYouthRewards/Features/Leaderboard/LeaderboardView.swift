@@ -11,6 +11,10 @@ struct LeaderboardView: View {
     @StateObject private var viewModel = LeaderboardViewModel()
     @EnvironmentObject var gameProgressManager: GameProgressManager
 
+    @State private var showHeaderCard = false
+    @State private var showTopThree = false
+    @State private var showRows = false
+
     var body: some View {
         let currentUser = viewModel.currentUser(username: gameProgressManager.username)
 
@@ -18,16 +22,20 @@ struct LeaderboardView: View {
             VStack(spacing: 18) {
                 if let currentUser {
                     currentUserCard(currentUser)
+                        .opacity(showHeaderCard ? 1 : 0)
+                        .offset(y: showHeaderCard ? 0 : 16)
                 }
 
                 if viewModel.topThree.count == 3 {
-                    VStack(alignment: .leading, spacing: 16) {
+                    VStack(alignment: .leading, spacing: 14) {
                         Text("Top 3")
                             .font(.system(size: 22, weight: .bold))
                             .frame(maxWidth: .infinity, alignment: .leading)
 
                         topThreePodium
                     }
+                    .opacity(showTopThree ? 1 : 0)
+                    .offset(y: showTopThree ? 0 : 20)
                 }
 
                 VStack(alignment: .leading, spacing: 12) {
@@ -35,8 +43,15 @@ struct LeaderboardView: View {
                         .font(.system(size: 22, weight: .bold))
                         .frame(maxWidth: .infinity, alignment: .leading)
 
-                    ForEach(viewModel.remainingUsers) { user in
+                    ForEach(Array(viewModel.remainingUsers.enumerated()), id: \.element.id) { index, user in
                         rankingRow(user)
+                            .opacity(showRows ? 1 : 0)
+                            .offset(y: showRows ? 0 : 14)
+                            .animation(
+                                .spring(response: 0.45, dampingFraction: 0.88)
+                                .delay(Double(index) * 0.04),
+                                value: showRows
+                            )
                     }
                 }
             }
@@ -47,6 +62,27 @@ struct LeaderboardView: View {
         .background(Color(.systemGroupedBackground))
         .task {
             await viewModel.loadLeaderboard()
+            runEntranceAnimations()
+        }
+    }
+
+    private func runEntranceAnimations() {
+        showHeaderCard = false
+        showTopThree = false
+        showRows = false
+
+        withAnimation(.spring(response: 0.42, dampingFraction: 0.9)) {
+            showHeaderCard = true
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
+            withAnimation(.spring(response: 0.55, dampingFraction: 0.82)) {
+                showTopThree = true
+            }
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.24) {
+            showRows = true
         }
     }
 
@@ -95,7 +131,8 @@ struct LeaderboardView: View {
                             fill: Color(red: 0.69, green: 0.75, blue: 0.81),
                             stroke: Color(red: 0.82, green: 0.85, blue: 0.88),
                             crown: false,
-                            rankOffsetX: 4
+                            rankOffsetX: 4,
+                            isFirst: false
                         )
                         .padding(.bottom, 10)
                     }
@@ -107,7 +144,8 @@ struct LeaderboardView: View {
                             fill: Color(red: 0.95, green: 0.73, blue: 0.20),
                             stroke: Color(red: 0.98, green: 0.87, blue: 0.58),
                             crown: true,
-                            rankOffsetX: 8
+                            rankOffsetX: 8,
+                            isFirst: true
                         )
                         .padding(.bottom, 28)
                     }
@@ -119,7 +157,8 @@ struct LeaderboardView: View {
                             fill: Color(red: 0.87, green: 0.62, blue: 0.36),
                             stroke: Color(red: 0.94, green: 0.82, blue: 0.69),
                             crown: false,
-                            rankOffsetX: 4
+                            rankOffsetX: 4,
+                            isFirst: false
                         )
                         .padding(.bottom, 10)
                     }
@@ -139,7 +178,8 @@ struct LeaderboardView: View {
         fill: Color,
         stroke: Color,
         crown: Bool,
-        rankOffsetX: CGFloat
+        rankOffsetX: CGFloat,
+        isFirst: Bool
     ) -> some View {
         VStack(spacing: 8) {
             if crown {
@@ -147,6 +187,9 @@ struct LeaderboardView: View {
                     .font(.system(size: 20))
                     .foregroundColor(.yellow)
                     .padding(.bottom, 2)
+                    .opacity(showTopThree ? 1 : 0)
+                    .offset(y: showTopThree ? 0 : -8)
+                    .animation(.spring(response: 0.5, dampingFraction: 0.78).delay(0.18), value: showTopThree)
             } else {
                 Spacer()
                     .frame(height: 22)
@@ -165,6 +208,12 @@ struct LeaderboardView: View {
                             .font(.system(size: size * 0.32, weight: .bold))
                             .foregroundColor(.white)
                     )
+                    .scaleEffect(showTopThree ? 1 : 0.82)
+                    .animation(
+                        .spring(response: isFirst ? 0.62 : 0.48, dampingFraction: 0.8)
+                        .delay(isFirst ? 0.1 : 0.04),
+                        value: showTopThree
+                    )
 
                 Text("\(user.rank)")
                     .font(.system(size: 13, weight: .bold))
@@ -173,6 +222,8 @@ struct LeaderboardView: View {
                     .background(Color(.systemGray6))
                     .clipShape(Circle())
                     .offset(x: rankOffsetX, y: -6)
+                    .opacity(showTopThree ? 1 : 0)
+                    .animation(.easeInOut(duration: 0.22).delay(0.14), value: showTopThree)
             }
 
             Text(user.username)
@@ -246,20 +297,5 @@ struct LeaderboardView: View {
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
         return formatter.string(from: NSNumber(value: points)) ?? "\(points)"
-    }
-
-    private func levelTitle(for level: Int) -> String {
-        switch level {
-        case 1...4:
-            return "Explorer"
-        case 5...9:
-            return "Achiever"
-        case 10...19:
-            return "Challenger"
-        case 20...49:
-            return "Champion"
-        default:
-            return "Legend"
-        }
     }
 }

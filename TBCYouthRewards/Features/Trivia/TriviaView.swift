@@ -10,26 +10,44 @@ import SwiftUI
 struct TriviaView: View {
     @StateObject private var viewModel = TriviaViewModel()
     @EnvironmentObject var gameProgressManager: GameProgressManager
+    @State private var shakeTrigger: CGFloat = 0
 
     var body: some View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 14) {
                 if !viewModel.hasStarted {
                     landingCard
+                        .transition(.opacity.combined(with: .move(edge: .bottom)))
                 } else if viewModel.isSpinning {
                     spinningCard
+                        .transition(.opacity.combined(with: .scale(scale: 0.96)))
                 } else if viewModel.sessionCompleted {
                     resultSummaryCard
+                        .transition(.opacity.combined(with: .scale(scale: 0.96)))
                 } else {
                     if let question = viewModel.currentQuestion {
                         progressCard
+                            .transition(.opacity.combined(with: .move(edge: .top)))
+
                         questionCard(question)
+                            .id(question.id)
+                            .transition(
+                                .asymmetric(
+                                    insertion: .move(edge: .trailing).combined(with: .opacity),
+                                    removal: .move(edge: .leading).combined(with: .opacity)
+                                )
+                            )
                     }
                 }
             }
             .padding(.horizontal, 16)
             .padding(.top, 14)
             .padding(.bottom, 20)
+            .animation(.spring(response: 0.42, dampingFraction: 0.9), value: viewModel.hasStarted)
+            .animation(.spring(response: 0.42, dampingFraction: 0.9), value: viewModel.isSpinning)
+            .animation(.spring(response: 0.42, dampingFraction: 0.9), value: viewModel.sessionCompleted)
+            .animation(.easeInOut(duration: 0.35), value: viewModel.currentQuestionIndex)
+            .animation(.easeInOut(duration: 0.35), value: viewModel.answerResult?.correctOptionIndex ?? -1)
         }
         .background(Color(.systemGroupedBackground))
         .alert(
@@ -98,8 +116,9 @@ struct TriviaView: View {
                     )
                 )
                 .clipShape(RoundedRectangle(cornerRadius: 20))
+                .scaleEffect(viewModel.isLoading ? 0.98 : 1)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PressableButtonStyle())
         }
         .padding(22)
         .background(Color.white)
@@ -158,6 +177,7 @@ struct TriviaView: View {
             ProgressView(value: viewModel.progressValue)
                 .tint(.cyan)
                 .scaleEffect(y: 1.2)
+                .animation(.easeInOut(duration: 0.45), value: viewModel.progressValue)
 
             HStack {
                 HStack(spacing: 4) {
@@ -169,6 +189,7 @@ struct TriviaView: View {
                         .font(.body)
                         .fontWeight(.bold)
                         .foregroundColor(.blue)
+                        .contentTransition(.numericText())
                 }
 
                 Spacer()
@@ -177,6 +198,7 @@ struct TriviaView: View {
                     .font(.body)
                     .fontWeight(.semibold)
                     .foregroundColor(.secondary)
+                    .contentTransition(.numericText())
             }
         }
         .padding(16)
@@ -213,8 +235,20 @@ struct TriviaView: View {
             }
 
             Button {
+                if let result = viewModel.answerResult, !result.isCorrect {
+                    withAnimation(.easeInOut(duration: 0.18)) {
+                        shakeTrigger += 1
+                    }
+                }
+
                 Task {
                     await viewModel.submitOrContinue(gameManager: gameProgressManager)
+
+                    if let result = viewModel.answerResult, !result.isCorrect {
+                        withAnimation(.easeInOut(duration: 0.18)) {
+                            shakeTrigger += 1
+                        }
+                    }
                 }
             } label: {
                 HStack(spacing: 8) {
@@ -229,15 +263,23 @@ struct TriviaView: View {
                 .frame(height: 56)
                 .background(buttonBackgroundColor)
                 .clipShape(Capsule())
+                .animation(.easeInOut(duration: 0.2), value: viewModel.canSubmit)
+                .animation(.easeInOut(duration: 0.2), value: viewModel.answerResult != nil)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PressableButtonStyle())
             .disabled((viewModel.answerResult == nil && !viewModel.canSubmit) || viewModel.isLoading)
 
             if let result = viewModel.answerResult {
-                Text(result.isCorrect ? "Correct answer" : "Wrong answer")
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-                    .foregroundColor(result.isCorrect ? .green : .red)
+                HStack(spacing: 8) {
+                    Image(systemName: result.isCorrect ? "checkmark.circle.fill" : "xmark.circle.fill")
+                        .foregroundColor(result.isCorrect ? .green : .red)
+
+                    Text(result.isCorrect ? "Correct answer" : "Wrong answer")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(result.isCorrect ? .green : .red)
+                }
+                .transition(.opacity.combined(with: .scale(scale: 0.95)))
             }
         }
         .padding(16)
@@ -247,6 +289,7 @@ struct TriviaView: View {
             RoundedRectangle(cornerRadius: 24)
                 .stroke(Color.black.opacity(0.05), lineWidth: 1)
         )
+        .modifier(ShakeEffect(animatableData: shakeTrigger))
     }
 
     private var resultSummaryCard: some View {
@@ -254,6 +297,8 @@ struct TriviaView: View {
             Image(systemName: "checkmark.seal.fill")
                 .font(.system(size: 56))
                 .foregroundColor(.blue)
+                .scaleEffect(viewModel.sessionCompleted ? 1 : 0.9)
+                .animation(.spring(response: 0.45, dampingFraction: 0.7), value: viewModel.sessionCompleted)
 
             Text("Session Completed")
                 .font(.system(size: 26, weight: .bold))
@@ -276,6 +321,7 @@ struct TriviaView: View {
                     .background(Color.blue)
                     .clipShape(RoundedRectangle(cornerRadius: 18))
             }
+            .buttonStyle(PressableButtonStyle())
         }
         .padding(22)
         .background(Color.white)
@@ -318,7 +364,9 @@ struct TriviaView: View {
                 : LinearGradient(colors: [Color.gray.opacity(0.08), Color.gray.opacity(0.08)], startPoint: .leading, endPoint: .trailing)
             )
             .clipShape(RoundedRectangle(cornerRadius: 14))
-            .animation(.easeInOut(duration: 0.2), value: active)
+            .scaleEffect(active ? 1.04 : 1)
+            .shadow(color: active ? Color.blue.opacity(0.18) : .clear, radius: 10, x: 0, y: 6)
+            .animation(.spring(response: 0.28, dampingFraction: 0.8), value: active)
     }
 
     private func subjectBadge(title: String) -> some View {
@@ -341,7 +389,9 @@ struct TriviaView: View {
         let isWrongSelected = viewModel.answerResult != nil && isSelected && !isCorrect
 
         return Button {
-            viewModel.selectAnswer(index)
+            withAnimation(.spring(response: 0.25, dampingFraction: 0.82)) {
+                viewModel.selectAnswer(index)
+            }
         } label: {
             HStack(spacing: 14) {
                 Circle()
@@ -359,6 +409,16 @@ struct TriviaView: View {
                     .multilineTextAlignment(.leading)
 
                 Spacer()
+
+                if isCorrect {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(.green)
+                        .transition(.scale.combined(with: .opacity))
+                } else if isWrongSelected {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(.red)
+                        .transition(.scale.combined(with: .opacity))
+                }
             }
             .padding(.horizontal, 14)
             .frame(minHeight: 84)
@@ -368,6 +428,10 @@ struct TriviaView: View {
                     .stroke(answerBorder(isSelected: isSelected, isCorrect: isCorrect, isWrongSelected: isWrongSelected), lineWidth: 1.5)
             )
             .clipShape(RoundedRectangle(cornerRadius: 18))
+            .scaleEffect(isSelected && viewModel.answerResult == nil ? 0.98 : 1)
+            .animation(.spring(response: 0.24, dampingFraction: 0.82), value: isSelected)
+            .animation(.easeInOut(duration: 0.2), value: isCorrect)
+            .animation(.easeInOut(duration: 0.2), value: isWrongSelected)
         }
         .buttonStyle(.plain)
         .disabled(viewModel.answerResult != nil)
@@ -468,5 +532,28 @@ struct TriviaView: View {
 private extension Array {
     subscript(safe index: Int) -> Element? {
         indices.contains(index) ? self[index] : nil
+    }
+}
+
+struct PressableButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+            .animation(.easeOut(duration: 0.16), value: configuration.isPressed)
+    }
+}
+
+struct ShakeEffect: GeometryEffect {
+    var amount: CGFloat = 8
+    var shakesPerUnit: CGFloat = 3
+    var animatableData: CGFloat
+
+    func effectValue(size: CGSize) -> ProjectionTransform {
+        ProjectionTransform(
+            CGAffineTransform(
+                translationX: amount * sin(animatableData * .pi * shakesPerUnit),
+                y: 0
+            )
+        )
     }
 }

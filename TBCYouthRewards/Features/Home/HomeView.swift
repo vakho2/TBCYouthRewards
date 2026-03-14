@@ -16,6 +16,15 @@ struct HomeView: View {
     @State private var checkInRewardText: String?
     @EnvironmentObject var gameProgressManager: GameProgressManager
 
+    @State private var showBalanceCard = false
+    @State private var showLevelCard = false
+    @State private var showStreakSection = false
+    @State private var showActionsSection = false
+    @State private var showCardBanner = false
+    @State private var showLeaderboardSection = false
+    @State private var showRewardsSection = false
+    @State private var animatedProgress: Double = 0
+
     var body: some View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 16) {
@@ -35,6 +44,7 @@ struct HomeView: View {
 
                                 Text("\(gameProgressManager.totalPoints)")
                                     .font(.system(size: 34, weight: .bold))
+                                    .contentTransition(.numericText())
 
                                 Text("pts")
                                     .font(.title3)
@@ -44,6 +54,8 @@ struct HomeView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal, 20)
                     )
+                    .opacity(showBalanceCard ? 1 : 0)
+                    .offset(y: showBalanceCard ? 0 : 18)
 
                 RoundedRectangle(cornerRadius: 24)
                     .fill(Color.white)
@@ -71,13 +83,15 @@ struct HomeView: View {
                                     .font(.subheadline)
                                     .fontWeight(.semibold)
                                     .foregroundColor(.gray)
+                                    .contentTransition(.numericText())
                             }
 
                             ProgressView(
-                                value: Double(gameProgressManager.currentLevelXP),
-                                total: Double(gameProgressManager.nextLevelXP)
+                                value: animatedProgress,
+                                total: Double(max(gameProgressManager.nextLevelXP, 1))
                             )
                             .tint(.blue)
+                            .animation(.easeInOut(duration: 0.7), value: animatedProgress)
 
                             HStack(spacing: 6) {
                                 Image(systemName: "info.circle.fill")
@@ -92,6 +106,8 @@ struct HomeView: View {
                         .padding(20)
                     )
                     .shadow(color: .black.opacity(0.03), radius: 10, x: 0, y: 4)
+                    .opacity(showLevelCard ? 1 : 0)
+                    .offset(y: showLevelCard ? 0 : 18)
 
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Daily Streak • \(gameProgressManager.currentStreak) days")
@@ -110,7 +126,8 @@ struct HomeView: View {
                                         title: "DAY \(dayNumber)",
                                         icon: iconForStreakDay(dayNumber),
                                         isActive: gameProgressManager.currentStreak >= dayNumber,
-                                        isBonus: dayNumber == 5
+                                        isBonus: dayNumber == 5,
+                                        isCurrent: dayNumber == gameProgressManager.currentStreak
                                     )
                                 }
                             }
@@ -118,6 +135,8 @@ struct HomeView: View {
                         )
                         .shadow(color: .black.opacity(0.03), radius: 10, x: 0, y: 4)
                 }
+                .opacity(showStreakSection ? 1 : 0)
+                .offset(y: showStreakSection ? 0 : 18)
 
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Quests & Actions")
@@ -131,6 +150,8 @@ struct HomeView: View {
                         }
                     }
                 }
+                .opacity(showActionsSection ? 1 : 0)
+                .offset(y: showActionsSection ? 0 : 18)
 
                 RoundedRectangle(cornerRadius: 24)
                     .fill(
@@ -164,10 +185,13 @@ struct HomeView: View {
                                     .background(Color.white)
                                     .clipShape(Capsule())
                             }
+                            .buttonStyle(PressableScaleStyle())
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(20)
                     )
+                    .opacity(showCardBanner ? 1 : 0)
+                    .offset(y: showCardBanner ? 0 : 18)
 
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
@@ -191,6 +215,8 @@ struct HomeView: View {
                         }
                     }
                 }
+                .opacity(showLeaderboardSection ? 1 : 0)
+                .offset(y: showLeaderboardSection ? 0 : 18)
 
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
@@ -222,10 +248,19 @@ struct HomeView: View {
                     )
                 }
                 .padding(.top, 4)
+                .opacity(showRewardsSection ? 1 : 0)
+                .offset(y: showRewardsSection ? 0 : 18)
             }
             .padding(.horizontal, 16)
             .padding(.top, 16)
             .padding(.bottom, 24)
+            .animation(.spring(response: 0.46, dampingFraction: 0.88), value: showBalanceCard)
+            .animation(.spring(response: 0.46, dampingFraction: 0.88), value: showLevelCard)
+            .animation(.spring(response: 0.46, dampingFraction: 0.88), value: showStreakSection)
+            .animation(.spring(response: 0.46, dampingFraction: 0.88), value: showActionsSection)
+            .animation(.spring(response: 0.46, dampingFraction: 0.88), value: showCardBanner)
+            .animation(.spring(response: 0.46, dampingFraction: 0.88), value: showLeaderboardSection)
+            .animation(.spring(response: 0.46, dampingFraction: 0.88), value: showRewardsSection)
         }
         .background(Color(.systemGroupedBackground))
         .task {
@@ -235,6 +270,18 @@ struct HomeView: View {
 
             if gameProgressManager.tasks.isEmpty {
                 await gameProgressManager.loadTasks()
+            }
+
+            runEntranceAnimations()
+        }
+        .onChange(of: gameProgressManager.currentLevelXP) { _, newValue in
+            withAnimation(.easeInOut(duration: 0.7)) {
+                animatedProgress = Double(newValue)
+            }
+        }
+        .onChange(of: gameProgressManager.nextLevelXP) { _, _ in
+            withAnimation(.easeInOut(duration: 0.7)) {
+                animatedProgress = Double(gameProgressManager.currentLevelXP)
             }
         }
         .sheet(isPresented: $isCheckInPresented) {
@@ -273,6 +320,7 @@ struct HomeView: View {
                         .background(Color.blue)
                         .clipShape(RoundedRectangle(cornerRadius: 16))
                 }
+                .buttonStyle(PressableScaleStyle())
                 .padding(.top, 8)
             }
             .padding(24)
@@ -315,7 +363,65 @@ struct HomeView: View {
         }
     }
 
-    private func streakItem(title: String, icon: String, isActive: Bool = false, isBonus: Bool = false) -> some View {
+    private func runEntranceAnimations() {
+        showBalanceCard = false
+        showLevelCard = false
+        showStreakSection = false
+        showActionsSection = false
+        showCardBanner = false
+        showLeaderboardSection = false
+        showRewardsSection = false
+
+        animatedProgress = 0
+
+        withAnimation(.spring(response: 0.42, dampingFraction: 0.9)) {
+            showBalanceCard = true
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
+            withAnimation(.spring(response: 0.46, dampingFraction: 0.88)) {
+                showLevelCard = true
+            }
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.16) {
+            withAnimation(.spring(response: 0.46, dampingFraction: 0.88)) {
+                showStreakSection = true
+            }
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.24) {
+            withAnimation(.spring(response: 0.46, dampingFraction: 0.88)) {
+                showActionsSection = true
+            }
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.32) {
+            withAnimation(.spring(response: 0.46, dampingFraction: 0.88)) {
+                showCardBanner = true
+            }
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.40) {
+            withAnimation(.spring(response: 0.46, dampingFraction: 0.88)) {
+                showLeaderboardSection = true
+            }
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.48) {
+            withAnimation(.spring(response: 0.46, dampingFraction: 0.88)) {
+                showRewardsSection = true
+            }
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) {
+            withAnimation(.easeInOut(duration: 0.8)) {
+                animatedProgress = Double(gameProgressManager.currentLevelXP)
+            }
+        }
+    }
+
+    private func streakItem(title: String, icon: String, isActive: Bool = false, isBonus: Bool = false, isCurrent: Bool = false) -> some View {
         VStack(spacing: 8) {
             ZStack {
                 Circle()
@@ -324,6 +430,13 @@ struct HomeView: View {
                     .overlay(
                         Circle()
                             .stroke(isBonus ? Color.blue : Color.clear, style: StrokeStyle(lineWidth: 2, dash: [4]))
+                    )
+                    .scaleEffect(isCurrent ? 1.06 : 1)
+                    .animation(
+                        isCurrent
+                        ? .easeInOut(duration: 1.1).repeatForever(autoreverses: true)
+                        : .default,
+                        value: isCurrent
                     )
 
                 if let number = Int(icon) {
@@ -403,7 +516,7 @@ struct HomeView: View {
             }
             .frame(maxWidth: .infinity)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PressableScaleStyle())
     }
 
     private func previewCard(name: String, value: String) -> some View {
@@ -466,4 +579,12 @@ struct ActionAlert: Identifiable {
     let id = UUID()
     let title: String
     let xp: Int
+}
+
+struct PressableScaleStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+            .animation(.easeOut(duration: 0.14), value: configuration.isPressed)
+    }
 }
